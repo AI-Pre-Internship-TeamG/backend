@@ -11,4 +11,4 @@ RUN pip install -r requirements.txt --no-cache-dir
 
 COPY . /backend
 
-CMD ["bash", "-c", "python3 manage.py migrate && python3 manage.py runserver 0.0.0.0:8000"]
+CMD ["bash", "-c", "python3 manage.py makemigrations images && python3 manage.py makemigrations users && python manage.py migrate --fake-initial && python3 manage.py runserver 0.0.0.0:8000"]
