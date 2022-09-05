@@ -39,8 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'users',
-    'images'
+    'users.apps.UsersConfig',
+    'images.apps.ImagesConfig',
 ]
 
 MIDDLEWARE = [
@@ -77,14 +77,15 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_NAME'),
-        'USER': os.environ.get('POSTGRES_USER'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-        'HOST': 'postgres',
-        'PORT': 5432,
+        'HOST': get_secret("AWS_DATABASE_HOST"),
+        'PORT': '5432',
+        'NAME': get_secret("AWS_DATABASE_NAME"),
+        'USER': get_secret("AWS_DATABASE_USER"),
+        'PASSWORD': get_secret("AWS_DATABASE_PASSWORD")
     }
 }
 
@@ -111,9 +112,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ko-kr'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Seoul'
 
 USE_I18N = True
 
