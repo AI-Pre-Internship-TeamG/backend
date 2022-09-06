@@ -36,7 +36,7 @@ class GoogleLogin(APIView):
         return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?client_id={client_id}&response_type=code&redirect_uri={GOOGLE_CALLBACK_URI}&scope={scope}")
 
 class GoogleCallback(APIView):
-
+    permission_classes = [AllowAny]
     def get(self, request):
         client_id = getattr(settings, "SOCIAL_AUTH_GOOGLE_CLIENT_ID")
         client_secret = getattr(settings, "SOCIAL_AUTH_GOOGLE_SECRET")
@@ -83,7 +83,7 @@ class GoogleCallback(APIView):
                 return JsonResponse({'err_msg': 'failed to signin'}, status=accept_status)
             accept_json = accept.json()
             refresh_token = accept_json['refresh_token']
-            cache.set(refresh_token, email, 60*60*24*28)
+            cache.set(email, refresh_token, 60*60*24*28)
             return JsonResponse(accept_json)
 
         except User.DoesNotExist:
@@ -97,7 +97,7 @@ class GoogleCallback(APIView):
                 return JsonResponse({'err_msg': 'failed to signup'}, status=accept_status)
             accept_json = accept.json()
             refresh_token = accept_json['refresh_token']
-            cache.set(refresh_token, email, 60*60*24*28)
+            cache.set(email, refresh_token, 60*60*24*28)
             return JsonResponse(accept_json)
 
 class GoogleLoginToDjango(SocialLoginView):
