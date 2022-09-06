@@ -77,9 +77,8 @@ def google_callback(request):
         if accept_status != 200:
             return JsonResponse({'err_msg': 'failed to signin'}, status=accept_status)
         accept_json = accept.json()
-        accept_json.pop('user', None)
         refresh_token = accept_json['refresh_token']
-        cache.set(email, refresh_token)
+        cache.set(email, refresh_token, 60*60*24*28)
         return JsonResponse(accept_json)
 
     except User.DoesNotExist:
@@ -92,9 +91,8 @@ def google_callback(request):
         if accept_status != 200:
             return JsonResponse({'err_msg': 'failed to signup'}, status=accept_status)
         accept_json = accept.json()
-        accept_json.pop('user', None)
         refresh_token = accept_json['refresh_token']
-        cache.set(email, refresh_token)
+        cache.set(email, refresh_token, 60*60*24*28)
         return JsonResponse(accept_json)
 
 class GoogleLogin(SocialLoginView):
