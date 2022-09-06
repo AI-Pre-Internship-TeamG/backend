@@ -30,7 +30,7 @@ SECRET_BASE_FILE = os.path.join(BASE_DIR, 'secrets.json')
 secrets = json.loads(open(SECRET_BASE_FILE).read())
 for key, value in secrets.items():
     setattr(sys.modules[__name__], key, value)
-AUTH_USER_MODEL = 'users.User'
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -59,6 +59,8 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+    # my_app
+    'config',
 ]
 
 MIDDLEWARE = [
@@ -188,7 +190,7 @@ REST_FRAMEWORK = {
 }
 
 # social login - 기본 user 모델에서 email만 사용하도록 커스터마이징
-
+AUTH_USER_MODEL = 'config.user'
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False

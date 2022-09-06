@@ -1,7 +1,6 @@
 import jwt
 import requests
-from .models import User
-from .services import validateRefeshToken
+from config.models import User
 from django.conf import settings
 from django.core.cache import cache
 from django.http import JsonResponse
