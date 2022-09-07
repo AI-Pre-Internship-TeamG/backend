@@ -19,8 +19,8 @@ from allauth.socialaccount.models import SocialAccount
 from allauth.account.models import EmailAddress
 
 # Create your views here.
-BASE_URL = 'http://localhost:8000/'
-GOOGLE_CALLBACK_URI = BASE_URL + 'users/google/callback/'
+BASE_URL = 'http://localhost:8000/api/v1/users/'
+GOOGLE_CALLBACK_URI = BASE_URL + 'google/callback/'
 
 state = getattr(settings, 'STATE')
 
@@ -76,7 +76,7 @@ class GoogleCallback(APIView):
                 return JsonResponse({'err_msg': 'no matching social type'}, status=status.HTTP_400_BAD_REQUEST)
             # 기존에 Google로 가입한 user
             data = {'access_token': access_token, 'code': code}
-            accept = requests.post(f"{BASE_URL}users/google/login/finish/", data=data)
+            accept = requests.post(f"{BASE_URL}google/login/finish/", data=data)
             accept_status = accept.status_code
             if accept_status != 200:
                 return JsonResponse({'err_msg': 'failed to signin'}, status=accept_status)
@@ -90,7 +90,7 @@ class GoogleCallback(APIView):
             Sign up
             """
             data = {'access_token': access_token, 'code': code}
-            accept = requests.post(f"{BASE_URL}users/google/login/finish/", data=data)
+            accept = requests.post(f"{BASE_URL}google/login/finish/", data=data)
             accept_status = accept.status_code
             if accept_status != 200:
                 return JsonResponse({'err_msg': 'failed to signup'}, status=accept_status)
