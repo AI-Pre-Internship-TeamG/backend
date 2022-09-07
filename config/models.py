@@ -43,7 +43,7 @@ class User(AbstractUser):
         USER = 'USER'
     username = None
     email = models.EmailField(unique=True, max_length=255)
-    role = models.CharField(max_length=5, choices=Roles.choices, null=False)
+    role = models.CharField(max_length=5, choices=Roles.choices, null=False, default="USER")
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
     objects = UserManager()
