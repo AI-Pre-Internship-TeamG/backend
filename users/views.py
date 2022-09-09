@@ -19,12 +19,10 @@ from allauth.socialaccount.models import SocialAccount
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.providers.kakao import views as kakao_view
 
-
 # Create your views here.
 BASE_URL = 'http://localhost:8000/'
 GOOGLE_CALLBACK_URI = BASE_URL + 'users/google/callback/'
 KAKAO_CALLBACK_URI = BASE_URL + 'users/kakao/callback/'
-
 state = getattr(settings, 'STATE')
 
 class GoogleLogin(APIView):
@@ -107,7 +105,6 @@ class GoogleLoginToDjango(SocialLoginView):
     adapter_class = google_view.GoogleOAuth2Adapter
     callback_url = GOOGLE_CALLBACK_URI
     client_class = OAuth2Client
-
 
 def kakao_login(request):
     rest_api_key = getattr(settings, 'KAKAO_REST_API_KEY')
@@ -195,4 +192,3 @@ class KakaoLogin(SocialLoginView):
     adapter_class = kakao_view.KakaoOAuth2Adapter
     client_class = OAuth2Client
     callback_url = KAKAO_CALLBACK_URI
-
