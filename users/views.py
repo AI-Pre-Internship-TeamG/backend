@@ -17,10 +17,11 @@ from allauth.socialaccount.models import SocialAccount
 from allauth.socialaccount.providers.kakao import views as kakao_view
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from allauth.socialaccount.providers.google import views as google_view
-# Create your views here.
+
 BASE_URL = 'http://localhost:8000/api/v1/users/'
 GOOGLE_CALLBACK_URI = BASE_URL + 'google/callback/'
 KAKAO_CALLBACK_URI = BASE_URL + 'kakao/callback/'
+
 state = getattr(settings, 'STATE')
 
 class GoogleLogin(APIView):

@@ -153,11 +153,13 @@ USE_I18N = True
 
 USE_TZ = True
 
+
+# s3 버킷 설정
 AWS_ACCESS_KEY_ID = get_secret("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = get_secret("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = get_secret("AWS_BUCKET_NAME")
 AWS_REGION = get_secret("AWS_REGION")
-AWS_S3_CUSTOM_DOMAIN = '%s.s3.%s.amazonaws.com' % (AWS_STORAGE_BUCKET_NAME, AWS_REGION)
+AWS_S3_CUSTOM_DOMAIN = 'http://%s.s3.%s.amazonaws.com/' % (AWS_STORAGE_BUCKET_NAME, AWS_REGION)
 
 AWS_S3_OBJECT_PARAMETERS = {
     'CacheControl': 'max-age=86400',

@@ -13,7 +13,6 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from images.views import upload
 from django.contrib import admin
 from django.urls import path, include
 
@@ -24,4 +23,5 @@ urlpatterns = [
     path('users/', include("users.urls")),
     path('api/v1/photos/', include("images.urls")),
     path('api/v1/users/', include("users.urls")),
+    path('api/v1/mypage/', include("images.urls"))
 ]
