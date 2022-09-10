@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from PIL import Image
 from .services import saveImageToS3
-from .serializers import ImageSerializer
+from .serializers import ImageSerializer, GetImageSerializer
 from config.models import User, Image
 
 class Upload(APIView):
@@ -35,3 +35,41 @@ class Upload(APIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class AllPhoto(APIView):
+
+    def get(self, request):
+        user = User.objects.get(email=request.user)
+        if user is None:
+            return Response({"message": "로그인 후 이용 가능한 서비스입니다."}, status=status.HTTP_401_AUTHENTICATE_ERROR)
+        image = Image.objects.filter(user_id=user.id)
+        print(image)
+        imageSerializer = GetImageSerializer(image, many=True)
+        print(imageSerializer)
+        return Response(imageSerializer.data, status=status.HTTP_200_OK)
+
+class History(APIView):
+
+    def get(self, request, image_id):
+        '''
+        사용자가 선택한 이미지를 가져옴
+        '''
+        user = User.objects.get(email=request.user)
+        if user is None:
+            return Response({"message": "로그인 후 이용 가능한 서비스입니다."}, status=status.HTTP_401_AUTHENTICATE_ERROR)
+        image = Image.objects.get(id=image_id, user_id=user.id)
+        if image is None:
+            return Response({"message": "존재하지 않는 이미지 입니다."}, stauts=status.404_NOT_FOUND)
+        serializer = GetImageSerializer(image)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request, image_id):
+        '''
+        사용자가 선택한 이미지 삭제
+        '''
+        user = User.objects.get(email=request.user)
+        selectImage = Image.objects.get(id=image_id, user_id=user.id)
+        if selectImage is None:
+            return Response({"message": "존재하지 않는 이미지 입니다."}, stauts=status.404_NOT_FOUND)
+        selectImage.delete()
+        return JsonResponse({"messge": "이미지를 삭제하였습니다."}, status=status.HTTP_200_OK)

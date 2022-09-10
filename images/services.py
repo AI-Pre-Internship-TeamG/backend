@@ -1,6 +1,7 @@
 import config.settings as settings
 import boto3
 import uuid
+
 def saveImageToS3(uploadFile, state):
     # 파일 확장자 추출
     fileFormat = uploadFile.content_type.split("/")[1]
