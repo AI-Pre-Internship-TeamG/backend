@@ -13,14 +13,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from allauth.socialaccount.providers.google import views as google_view
-from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from allauth.socialaccount.models import SocialAccount
-from allauth.account.models import EmailAddress
+from allauth.socialaccount.providers.kakao import views as kakao_view
+from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+from allauth.socialaccount.providers.google import views as google_view
 
-# Create your views here.
 BASE_URL = 'http://localhost:8000/api/v1/users/'
 GOOGLE_CALLBACK_URI = BASE_URL + 'google/callback/'
+KAKAO_CALLBACK_URI = BASE_URL + 'kakao/callback/'
 
 state = getattr(settings, 'STATE')
 
@@ -106,3 +106,131 @@ class GoogleLoginToDjango(SocialLoginView):
     client_class = OAuth2Client
 
 
+def kakao_login(request):
+    rest_api_key = getattr(settings, 'KAKAO_REST_API_KEY')
+    kakao_auth_api = "https://kauth.kakao.com/oauth/authorize?response_type=code"
+    return redirect(
+        f"{kakao_auth_api}&client_id={rest_api_key}&redirect_uri={KAKAO_CALLBACK_URI}"
+    )
+
+
+def kakao_callback(request):
+    rest_api_key = getattr(settings, 'KAKAO_REST_API_KEY')
+    code = request.GET.get("code")
+    redirect_uri = KAKAO_CALLBACK_URI
+    kakao_token_api = "https://kauth.kakao.com/oauth/token"
+    data = {
+        'grant_type': 'authorization_code',
+        'client_id': rest_api_key,
+        'redirection_uri' : redirect_uri,
+        'code': code,
+    }
+    """
+    Access Token Request
+    """
+    token_res = requests.post(kakao_token_api, data=data)
+    # return  JsonResponse({"token": token_res.json()})
+    access_token = token_res.json().get('access_token')
+    # return JsonResponse({"access_token": access_token})
+
+    """
+    Email Request 이메일이 출력이 안되고 있음!
+    """
+    profile_request = requests.get(
+        "https://kapi.kakao.com/v2/user/me", headers={"Authorization": f'Bearer ${access_token}'})
+    profile_json = profile_request.json()
+    # return JsonResponse({"user_info": profile_json})
+    error = profile_json.get("error")
+    if error is not None:
+        raise JSONDecodeError(error)
+    kakao_account = profile_json.get('kakao_account')
+    # return JsonResponse({"user_info": profile_json})
+    """
+    kakao_account에서 이메일 외에
+    카카오톡 프로필 이미지, 배경 이미지 url 가져올 수 있음
+    print(kakao_account) 참고
+    """
+    # print(kakao_account)
+    email = kakao_account.get('email')
+    """
+    Signup or Signin Request
+    """
+    try:
+        user = User.objects.get(email=email)
+        # 기존에 가입된 유저의 Provider가 kakao가 아니면 에러 발생, 맞으면 로그인
+        # 다른 SNS로 가입된 유저
+        social_user = SocialAccount.objects.get(user=user)
+        if social_user is None:
+            return JsonResponse({'err_msg': 'email exists but not social user'}, status=status.HTTP_400_BAD_REQUEST)
+        if social_user.provider != 'kakao':
+            return JsonResponse({'err_msg': 'no matching social type'}, status=status.HTTP_400_BAD_REQUEST)
+        # 기존에 kakao로 가입된 유저
+        data = {'access_token': access_token, 'code': code}
+        accept = requests.post(
+            f"{BASE_URL}users/kakao/login/finish/", data=data)
+        accept_status = accept.status_code
+        if accept_status != 200:
+            return JsonResponse({'err_msg': 'failed to signin'}, status=accept_status)
+        accept_json = accept.json()
+        accept_json.pop('user', None)
+        refresh_token = accept_json['refresh_token']
+        cache.set(email, refresh_token, 60*60*24*28)
+        return JsonResponse(accept_json)
+
+    except User.DoesNotExist:
+        # 기존에 가입된 유저가 없으면 새로 가입
+        data = {'access_token': access_token, 'code': code}
+        accept = requests.post(
+            f"{BASE_URL}users/kakao/login/finish/", data=data)
+        accept_status = accept.status_code
+        if accept_status != 200:
+            return JsonResponse({'err_msg': 'failed to signup'}, status=accept_status)
+        # user의 pk, email, first name, last name과 Access Token, Refresh token 가져옴
+        accept_json = accept.json()
+        accept_json.pop('user', None)
+        refresh_token = accept_json['refresh_token']
+        cache.set(email, refresh_token, 60*60*24*28)
+        return JsonResponse(accept_json)
+
+
+class KakaoLogin(SocialLoginView):
+    adapter_class = kakao_view.KakaoOAuth2Adapter
+    client_class = OAuth2Client
+    callback_url = KAKAO_CALLBACK_URI
+
+def refreshKakaoAccessToken(request):
+    user = request.user
+    refreshToken = cache.get(user)
+    rest_api_key = getattr(settings, 'KAKAO_REST_API_KEY')
+    url = "https://kauth.kakao.com/oauth/token"
+    data = {
+        "grant_type": "refresh_token",
+        "client_id": rest_api_key,
+        "refresh_token": refreshToken
+    }
+    """
+    Access Token Request
+    """
+    token_res = requests.post(url, data=data)
+    print(token_res)
+    accept_json = token_res.json()
+    return JsonResponse(accept_json)
+
+def refresGoogleAccessToken(request):
+    user = request.user
+    refreshToken = cache.get(user)
+    client_id = getattr(settings, "SOCIAL_AUTH_GOOGLE_CLIENT_ID")
+    client_secret = getattr(settings, "SOCIAL_AUTH_GOOGLE_SECRET")
+    url = "https://oauth2.googleapis.com/token/"
+    data = {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "refresh_token": refreshToken,
+        "grant_type": "refresh_token",
+    }
+    """
+    Access Token Request
+    """
+    token_res = requests.post(url, data=data)
+    accept_json = token_res.json()
+    return JsonResponse(accept_json)
