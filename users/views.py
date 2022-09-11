@@ -83,7 +83,8 @@ class GoogleCallback(APIView):
             accept_json = accept.json()
             refresh_token = accept_json['refresh_token']
             cache.set(email, refresh_token, 60*60*24*28)
-            return JsonResponse(accept_json)
+            access_token = {"Authorization" : "Bearer " + accept_json['access_token']}
+            return JsonResponse(access_token)
 
         except User.DoesNotExist:
             """
@@ -97,7 +98,8 @@ class GoogleCallback(APIView):
             accept_json = accept.json()
             refresh_token = accept_json['refresh_token']
             cache.set(email, refresh_token, 60*60*24*28)
-            return JsonResponse(accept_json)
+            access_token = {"Authorization" : "Bearer " + accept_json['access_token']}
+            return JsonResponse(access_token)
 
 class GoogleLoginToDjango(SocialLoginView):
 
@@ -167,7 +169,7 @@ def kakao_callback(request):
         # 기존에 kakao로 가입된 유저
         data = {'access_token': access_token, 'code': code}
         accept = requests.post(
-            f"{BASE_URL}users/kakao/login/finish/", data=data)
+            f"{BASE_URL}kakao/login/finish/", data=data)
         accept_status = accept.status_code
         if accept_status != 200:
             return JsonResponse({'err_msg': 'failed to signin'}, status=accept_status)
@@ -175,13 +177,14 @@ def kakao_callback(request):
         accept_json.pop('user', None)
         refresh_token = accept_json['refresh_token']
         cache.set(email, refresh_token, 60*60*24*28)
-        return JsonResponse(accept_json)
+        access_token = {"Authorization" : "Bearer " + accept_json['access_token']}
+        return JsonResponse(access_token)
 
     except User.DoesNotExist:
         # 기존에 가입된 유저가 없으면 새로 가입
         data = {'access_token': access_token, 'code': code}
         accept = requests.post(
-            f"{BASE_URL}users/kakao/login/finish/", data=data)
+            f"{BASE_URL}kakao/login/finish/", data=data)
         accept_status = accept.status_code
         if accept_status != 200:
             return JsonResponse({'err_msg': 'failed to signup'}, status=accept_status)
@@ -190,7 +193,8 @@ def kakao_callback(request):
         accept_json.pop('user', None)
         refresh_token = accept_json['refresh_token']
         cache.set(email, refresh_token, 60*60*24*28)
-        return JsonResponse(accept_json)
+        access_token = {"Authorization" : "Bearer " + accept_json['access_token']}
+        return JsonResponse(access_token)
 
 
 class KakaoLogin(SocialLoginView):
@@ -198,39 +202,41 @@ class KakaoLogin(SocialLoginView):
     client_class = OAuth2Client
     callback_url = KAKAO_CALLBACK_URI
 
-def refreshKakaoAccessToken(request):
-    user = request.user
-    refreshToken = cache.get(user)
-    rest_api_key = getattr(settings, 'KAKAO_REST_API_KEY')
-    url = "https://kauth.kakao.com/oauth/token"
-    data = {
-        "grant_type": "refresh_token",
-        "client_id": rest_api_key,
-        "refresh_token": refreshToken
-    }
-    """
-    Access Token Request
-    """
-    token_res = requests.post(url, data=data)
-    print(token_res)
-    accept_json = token_res.json()
-    return JsonResponse(accept_json)
+class RefresKakaoAccessToken(APIView):
+    def get(self, request):
+        user = request.user
+        refreshToken = cache.get(user)
+        rest_api_key = getattr(settings, 'KAKAO_REST_API_KEY')
+        url = "https://kauth.kakao.com/oauth/token"
+        data = {
+            "grant_type": "refresh_token",
+            "client_id": rest_api_key,
+            "refresh_token": f"{refreshToken}"
+        }
+        """
+        Access Token Request
+        """
+        token_res = requests.post(url, data=data)
+        print(token_res)
+        accept_json = token_res.json()
+        return JsonResponse(accept_json)
 
-def refresGoogleAccessToken(request):
-    user = request.user
-    refreshToken = cache.get(user)
-    client_id = getattr(settings, "SOCIAL_AUTH_GOOGLE_CLIENT_ID")
-    client_secret = getattr(settings, "SOCIAL_AUTH_GOOGLE_SECRET")
-    url = "https://oauth2.googleapis.com/token/"
-    data = {
-        "client_id": client_id,
-        "client_secret": client_secret,
-        "refresh_token": refreshToken,
-        "grant_type": "refresh_token",
-    }
-    """
-    Access Token Request
-    """
-    token_res = requests.post(url, data=data)
-    accept_json = token_res.json()
-    return JsonResponse(accept_json)
+class RefresGoogleAccessToken(APIView):
+    def get(self, request):
+        user = request.user
+        refreshToken = cache.get(user)
+        client_id = getattr(settings, "SOCIAL_AUTH_GOOGLE_CLIENT_ID")
+        client_secret = getattr(settings, "SOCIAL_AUTH_GOOGLE_SECRET")
+        url = "https://oauth2.googleapis.com/token/"
+        data = {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "refresh_token": refreshToken,
+            "grant_type": "refresh_token",
+        }
+        """
+        Access Token Request
+        """
+        token_res = requests.post(url, data=data)
+        accept_json = token_res.json()
+        return JsonResponse(accept_json)

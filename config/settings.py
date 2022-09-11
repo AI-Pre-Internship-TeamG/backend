@@ -203,7 +203,7 @@ REST_USE_JWT = True
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours = 2),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days = 28),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days = 40),
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
 }
