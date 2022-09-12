@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.kakao',
     # my_app
     'config',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [

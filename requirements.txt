@@ -21,3 +21,5 @@ djangorestframework-simplejwt==4.6.0
 # S3
 Pillow
 boto3==1.24.66
+# Swagger
+drf-yasg
