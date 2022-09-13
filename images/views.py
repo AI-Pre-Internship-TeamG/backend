@@ -4,6 +4,7 @@ import config.settings as setting
 from django.shortcuts import render
 from drf_yasg.utils import swagger_auto_schema
 from django.http import HttpResponse, JsonResponse
+from django.core.paginator import Paginator
 from rest_framework.views import APIView
 from rest_framework.decorators import parser_classes
 from rest_framework.response import Response
@@ -26,7 +27,10 @@ class ImagesView(APIView):
         user = User.objects.get(email=request.user)
         if user is None:
             return Response({"message": "로그인 후 이용 가능한 서비스입니다."}, status=status.HTTP_401_UNAUTHORIZED)
-        image = Image.objects.filter(user_id=user.id)
+        images = Image.objects.filter(user_id=user.id)
+        paginator = Paginator(images, 12)
+        page = request.GET.get('page')
+        image = paginator.get_page(page)
         imageSerializer = GetImageSerializer(image, many=True)
         return Response(imageSerializer.data, status=status.HTTP_200_OK)
     
