@@ -1,5 +1,4 @@
 asgiref==3.5.2
-boto3==1.24.66
 botocore==1.27.66
 Django>=3.0,<4.0
 django-storages==1.13.1
@@ -14,3 +13,14 @@ urllib3==1.26.12
 psycopg2>=2.8
 gunicorn==20.1.0
 celery==4.4.0
+# social login
+django-allauth==0.44.0
+oauthlib==3.1.0
+dj-rest-auth==2.1.4
+django-redis
+djangorestframework-simplejwt==4.6.0
+# S3
+Pillow
+boto3==1.24.66
+# Swagger
+drf-yasg

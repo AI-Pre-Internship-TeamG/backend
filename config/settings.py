@@ -11,18 +11,25 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 import os
+import sys
+import json
 from pathlib import Path
+from datetime import timedelta
 from environments import get_secret
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+SITE_ID = 1
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = get_secret("DJANGO_SECRET_KEY")
+SECRET_BASE_FILE = os.path.join(BASE_DIR, 'secrets.json')
+secrets = json.loads(open(SECRET_BASE_FILE).read())
+for key, value in secrets.items():
+    setattr(sys.modules[__name__], key, value)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -39,10 +46,23 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'users.apps.UsersConfig',
     'images.apps.ImagesConfig',
     'storages',
-    'rest_framework'
+    'rest_framework',
+    'rest_framework.authtoken',
+    # social login
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.kakao',
+    # my_app
+    'config',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -91,6 +111,17 @@ DATABASES = {
     }
 }
 
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://redis:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
@@ -100,7 +131,7 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_valcd idation.MinimumLengthValidator',
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -122,11 +153,13 @@ USE_I18N = True
 
 USE_TZ = True
 
+
+# s3 버킷 설정
 AWS_ACCESS_KEY_ID = get_secret("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = get_secret("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = get_secret("AWS_BUCKET_NAME")
 AWS_REGION = get_secret("AWS_REGION")
-AWS_S3_CUSTOM_DOMAIN = '%s.s3.%s.amazonaws.com' % (AWS_STORAGE_BUCKET_NAME, AWS_REGION)
+AWS_S3_CUSTOM_DOMAIN = 'http://%s.s3.%s.amazonaws.com/' % (AWS_STORAGE_BUCKET_NAME, AWS_REGION)
 
 AWS_S3_OBJECT_PARAMETERS = {
     'CacheControl': 'max-age=86400',
@@ -143,3 +176,46 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+AUTHENTICATION_BACKENDS = {
+	'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.SessionAuthentication',
+        'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
+    ),
+}
+
+# social login - 기본 user 모델에서 email만 사용하도록 커스터마이징
+AUTH_USER_MODEL = 'config.user'
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+
+REST_USE_JWT = True
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours = 2),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days = 40),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+}
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": [
+            "profile",
+            "email",
+        ],
+        "AUTH_PARAMS": {
+            "access_type": "offline",
+        },
+    }
+}
