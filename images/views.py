@@ -102,9 +102,10 @@ class History(APIView):
         user = User.objects.get(email=request.user)
         if user is None:
             return Response({"message": "로그인 후 이용 가능한 서비스입니다."}, status=status.HTTP_401_UNAUTHORIZED)
-        selectImage = Image.objects.get(id=photo, user_id=user.id)
+        selectImage = Image.objects.get(id=photo)
         if selectImage is None:
             return Response({"message": "존재하지 않는 이미지 입니다."}, status=status.HTTP_404_NOT_FOUND)
-        selectImage.status = "DEL"
-        selectImage.save()
+        if user.id == "ADMIN" or selectImage.user_id == user.id:
+            selectImage.status = "DEL"
+            selectImage.save()
         return JsonResponse({"messge": "이미지를 삭제하였습니다."}, status=status.HTTP_200_OK)
