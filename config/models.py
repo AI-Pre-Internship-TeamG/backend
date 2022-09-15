@@ -3,6 +3,8 @@ from datetime import datetime
 from django.db.models import ForeignKey
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django_prometheus.models import ExportModelOperationsMixin
+
 
 class UserManager(BaseUserManager):
     """
@@ -37,7 +39,7 @@ class UserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 
-class User(AbstractUser):
+class User(ExportModelOperationsMixin('user'), AbstractUser):
     class Roles(models.TextChoices):
         ADMIN = 'ADMIN'
         USER = 'USER'
@@ -51,7 +53,7 @@ class User(AbstractUser):
     def __str__(self):
         return self.email
 
-class Image(models.Model):
+class Image(ExportModelOperationsMixin('image'), models.Model):
     class Status(models.TextChoices):
         DELETE = 'DEL'
         EXIST = 'EXS'
