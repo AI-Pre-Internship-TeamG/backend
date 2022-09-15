@@ -30,9 +30,31 @@ class ImagesView(APIView):
         images = Image.objects.filter(user_id=user.id)
         paginator = Paginator(images, 12)
         page = request.GET.get('page')
+        curPage = paginator.page(page)
         image = paginator.get_page(page)
         imageSerializer = GetImageSerializer(image, many=True)
-        return Response(imageSerializer.data, status=status.HTTP_200_OK)
+        if curPage.has_next():
+            next_page = curPage.previous_page_number()
+        else:
+            next_page = 0
+
+        if curPage.has_previous():
+            prev_page = curPage.previous_page_number()
+        else:
+            prev_page = 0
+
+        content ={
+            "images": imageSerializer.data,
+            "page_info": {
+                "page": page,
+                "pages": curPage.end_index(),
+                "prev_page": prev_page,
+                "next_page": next_page,
+                "has_next": curPage.has_next(),
+                "has_prev": curPage.has_previous()
+            }
+        }
+        return Response(content, status=status.HTTP_200_OK)
     
     @swagger_auto_schema(
         tags=['Image upload'],

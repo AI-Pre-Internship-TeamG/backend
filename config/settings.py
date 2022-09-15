@@ -103,11 +103,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'HOST': get_secret("AWS_DATABASE_HOST"),
-        'PORT': '5432',
-        'NAME': get_secret("AWS_DATABASE_NAME"),
-        'USER': get_secret("AWS_DATABASE_USER"),
-        'PASSWORD': get_secret("AWS_DATABASE_PASSWORD")
+        'NAME': os.environ.get('POSTGRES_NAME'),
+        'USER': os.environ.get('POSTGRES_USER'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+        'HOST': 'postgresql',
+        'PORT': 5432,
     }
 }
 
