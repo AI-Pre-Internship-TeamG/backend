@@ -27,7 +27,7 @@ class ImagesView(APIView):
         user = User.objects.get(email=request.user)
         if user is None:
             return Response({"message": "로그인 후 이용 가능한 서비스입니다."}, status=status.HTTP_401_UNAUTHORIZED)
-        images = Image.objects.filter(user_id=user.id)
+        images = Image.objects.filter(user_id=user.id, status="EXS")
         paginator = Paginator(images, 12)
         page = request.GET.get('page')
         curPage = paginator.page(page)
@@ -100,9 +100,12 @@ class History(APIView):
         user = User.objects.get(email=request.user)
         if user is None:
             return Response({"message": "로그인 후 이용 가능한 서비스입니다."}, status=status.HTTP_401_UNAUTHORIZED)
-        image = Image.objects.get(id=photo, user_id=user.id)
-        if image is None:
+        
+        try:
+            image = Image.objects.get(id=photo, user_id=user.id, status="EXS")
+        except Image.DoesNotExist:
             return Response({"message": "존재하지 않는 이미지 입니다."}, status=status.HTTP_404_NOT_FOUND)
+
         serializer = GetImageSerializer(image)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -124,5 +127,6 @@ class History(APIView):
         selectImage = Image.objects.get(id=photo, user_id=user.id)
         if selectImage is None:
             return Response({"message": "존재하지 않는 이미지 입니다."}, status=status.HTTP_404_NOT_FOUND)
-        selectImage.delete()
+        selectImage.status = "DEL"
+        selectImage.save()
         return JsonResponse({"messge": "이미지를 삭제하였습니다."}, status=status.HTTP_200_OK)
