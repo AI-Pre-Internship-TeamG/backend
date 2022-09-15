@@ -24,3 +24,4 @@ Pillow
 boto3==1.24.66
 # Swagger
 drf-yasg
+django_prometheus
