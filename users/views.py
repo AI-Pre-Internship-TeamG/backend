@@ -1,11 +1,16 @@
+from os import access
+from urllib import response
 import jwt
 import requests
+from .services import recreateAccessToken, googleEmailRequest
 from config.models import User
 from django.conf import settings
+from django.urls import reverse
 from django.core.cache import cache
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as _
+from drf_yasg.utils import swagger_auto_schema
 from dj_rest_auth.registration.views import SocialLoginView
 from json.decoder import JSONDecodeError
 from rest_framework import status
@@ -56,12 +61,7 @@ class GoogleCallback(APIView):
         """
         Email request - Access Token을 이용해 사용자의 이메일 반환받음
         """
-        email_req = requests.get(f"https://www.googleapis.com/oauth2/v1/tokeninfo?access_token={access_token}")
-        email_req_status = email_req.status_code
-        if email_req_status != 200:
-            return JsonResponse({'err_msg': 'failed to get email'}, status=status.HTTP_400_BAD_REQUEST)
-        email_req_json = email_req.json()
-        email = email_req_json.get('email')
+        email = googleEmailRequest(access_token)
         cache.set(email, refresh_token, 60*60*24*28)
         """
         Signup or Signin Request
@@ -116,7 +116,6 @@ class KakaoLogin(APIView):
             f"{kakao_auth_api}&client_id={rest_api_key}&redirect_uri={KAKAO_CALLBACK_URI}"
         )
 
-
 class KakaoCallback(APIView):
     permission_classes = [AllowAny]
 
@@ -138,7 +137,7 @@ class KakaoCallback(APIView):
         # return  JsonResponse({"token": token_res.json()})
         access_token = token_res.json().get('access_token')
         # return JsonResponse({"access_token": access_token})
-
+        refresh_token = token_res.json().get('refresh_token')
         """
         Email Request 이메일이 출력이 안되고 있음!
         """
@@ -158,6 +157,7 @@ class KakaoCallback(APIView):
         """
         # print(kakao_account)
         email = kakao_account.get('email')
+        cache.set(email, refresh_token, 60*60*24*28)
         """
         Signup or Signin Request
         """
@@ -180,7 +180,6 @@ class KakaoCallback(APIView):
             accept_json = accept.json()
             accept_json.pop('user', None)
             refresh_token = accept_json['refresh_token']
-            cache.set(email, refresh_token, 60*60*24*28)
             access_token = {"Authorization" : "Bearer " + accept_json['access_token']}
             return JsonResponse(access_token)
 
@@ -196,10 +195,8 @@ class KakaoCallback(APIView):
             accept_json = accept.json()
             accept_json.pop('user', None)
             refresh_token = accept_json['refresh_token']
-            cache.set(email, refresh_token, 60*60*24*28)
             access_token = {"Authorization" : "Bearer " + accept_json['access_token']}
             return JsonResponse(access_token)
-
 
 class KakaoLoginToDjango(SocialLoginView):
 
@@ -207,52 +204,77 @@ class KakaoLoginToDjango(SocialLoginView):
     client_class = OAuth2Client
     callback_url = KAKAO_CALLBACK_URI
 
+class RefreshAccessToken(APIView):
+    @swagger_auto_schema(
+        tags=['Refresh Access Token']
+    )
+    def get(self, request):
+        """
+        토큰 재발급을 위한 사용자 식별
+        사용자의 provider 확인
+        """
+        user = request.user
+        social_user = SocialAccount.objects.get(user=user)
+        if social_user.provider == 'google':
+            return redirect(reverse('google_refresh'))
+        elif social_user.provider == 'kakao':
+            return redirect(reverse('kakao_refresh'))
+
 class RefresKakaoAccessToken(APIView):
 
     def get(self, request):
         user = request.user
         refreshToken = cache.get(user)
         rest_api_key = getattr(settings, 'KAKAO_REST_API_KEY')
-        client_secret = getattr(settings, 'KAKAO_CLIENT_SECRET_KEY')
-        url = "https://kauth.kakao.com/oauth/token"
         data = {
             "grant_type": "refresh_token",
             "client_id": rest_api_key,
             "refresh_token": refreshToken
         }
-        """
-        Access Token Request
-        """
-        token_res = requests.post(url, data=data)
-        print(token_res)
-        accept_json = token_res.json()
-        return JsonResponse(accept_json)
+        token_res = requests.post("https://kauth.kakao.com/oauth/token", data=data)
+        token_res_json = token_res.json()
+        access_token = token_res_json.get("access_token")
+        profile_request = requests.get(
+            "https://kapi.kakao.com/v2/user/me", headers={"Authorization": f'Bearer ${access_token}'})
+        profile_json = profile_request.json()
+        error = profile_json.get("error")
+        if error is not None:
+            raise JSONDecodeError(error)
+        kakao_account = profile_json.get('kakao_account')
+        email = kakao_account.get('email')
+        access_token_request = recreateAccessToken(email, user)  # request를 보낸 사용자와 Access token의 사용자가 일치하는지 확인 후 토큰 재발급
+        token_status = access_token_request.get("status")
+        response = Response(
+            {
+                "Authorization": access_token_request.get("access_token")
+            },
+            status=token_status
+        )
+        return response
 
 class RefresGoogleAccessToken(APIView):
     
     def get(self, request):
         user = request.user
-        refreshToken = cache.get(user)
         client_id = getattr(settings, "SOCIAL_AUTH_GOOGLE_CLIENT_ID")
         client_secret = getattr(settings, "SOCIAL_AUTH_GOOGLE_SECRET")
-        url = "https://oauth2.googleapis.com/token"
+        refreshToken = cache.get(user) # 저장해둔 사용자의 refresh token
         data = {
             "client_id": client_id,
             "client_secret": client_secret,
             "refresh_token": refreshToken,
             "grant_type": "refresh_token",
         }
-        """
-        Access Token Request
-        """
-        token_res = requests.post(url, data=data)
+        token_res = requests.post("https://oauth2.googleapis.com/token", data=data)
         token_res_json = token_res.json()
-        data = {'access_token': token_res_json.get("access_token")}
-        accept = requests.post(
-            f"{BASE_URL}accounts/google/login/finish/", data=data)
-        accept_status = accept.status_code
-        if accept_status != 200:
-            return JsonResponse({'err_msg': 'failed to signin'}, status=accept_status)
-        accept_json = accept.json()
-        accept_json.pop('user', None)
-        return JsonResponse(accept_json)
+        googe_access_token = token_res_json.get("access_token")
+        email = googleEmailRequest(googe_access_token) # 해당 사용자가 존재하는지 확인
+        access_token_request = recreateAccessToken(email, user) # request를 보낸 사용자와 Access token의 사용자가 일치하는지 확인 후 토큰 재발급
+        token_status = access_token_request.get("status")
+        response = Response(
+            {
+                "Authorization": access_token_request.get("access_token")
+            },
+            status=token_status
+        )
+        return response
