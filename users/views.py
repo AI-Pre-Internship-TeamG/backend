@@ -33,7 +33,7 @@ class GoogleLogin(APIView):
         """
         scope = "https://www.googleapis.com/auth/userinfo.email"
         client_id = getattr(settings, "SOCIAL_AUTH_GOOGLE_CLIENT_ID")
-        return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?client_id={client_id}&response_type=code&redirect_uri={GOOGLE_CALLBACK_URI}&scope={scope}")
+        return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&client_id={client_id}&response_type=code&redirect_uri={GOOGLE_CALLBACK_URI}&scope={scope}")
 
 class GoogleCallback(APIView):
     permission_classes = [AllowAny]
@@ -52,6 +52,7 @@ class GoogleCallback(APIView):
         if error is not None:
             raise JSONDecodeError(error)
         access_token = token_req_json.get('access_token')
+        refresh_token = token_req_json.get("refresh_token")
         """
         Email request - Access Token을 이용해 사용자의 이메일 반환받음
         """
@@ -61,7 +62,7 @@ class GoogleCallback(APIView):
             return JsonResponse({'err_msg': 'failed to get email'}, status=status.HTTP_400_BAD_REQUEST)
         email_req_json = email_req.json()
         email = email_req_json.get('email')
-
+        cache.set(email, refresh_token, 60*60*24*28)
         """
         Signup or Signin Request
         """
@@ -83,8 +84,6 @@ class GoogleCallback(APIView):
             if accept_status != 200:
                 return JsonResponse({'err_msg': 'failed to signin'}, status=accept_status)
             accept_json = accept.json()
-            refresh_token = accept_json['refresh_token']
-            cache.set(email, refresh_token, 60*60*24*28)
             access_token = {"Authorization" : "Bearer " + accept_json['access_token']}
             return JsonResponse(access_token)
 
@@ -98,8 +97,6 @@ class GoogleCallback(APIView):
             if accept_status != 200:
                 return JsonResponse({'err_msg': 'failed to signup'}, status=accept_status)
             accept_json = accept.json()
-            refresh_token = accept_json['refresh_token']
-            cache.set(email, refresh_token, 60*60*24*28)
             access_token = {"Authorization" : "Bearer " + accept_json['access_token']}
             return JsonResponse(access_token)
 
@@ -216,11 +213,12 @@ class RefresKakaoAccessToken(APIView):
         user = request.user
         refreshToken = cache.get(user)
         rest_api_key = getattr(settings, 'KAKAO_REST_API_KEY')
+        client_secret = getattr(settings, 'KAKAO_CLIENT_SECRET_KEY')
         url = "https://kauth.kakao.com/oauth/token"
         data = {
             "grant_type": "refresh_token",
             "client_id": rest_api_key,
-            "refresh_token": f"{refreshToken}"
+            "refresh_token": refreshToken
         }
         """
         Access Token Request
@@ -237,7 +235,7 @@ class RefresGoogleAccessToken(APIView):
         refreshToken = cache.get(user)
         client_id = getattr(settings, "SOCIAL_AUTH_GOOGLE_CLIENT_ID")
         client_secret = getattr(settings, "SOCIAL_AUTH_GOOGLE_SECRET")
-        url = "https://oauth2.googleapis.com/token/"
+        url = "https://oauth2.googleapis.com/token"
         data = {
             "client_id": client_id,
             "client_secret": client_secret,
@@ -248,5 +246,13 @@ class RefresGoogleAccessToken(APIView):
         Access Token Request
         """
         token_res = requests.post(url, data=data)
-        accept_json = token_res.json()
+        token_res_json = token_res.json()
+        data = {'access_token': token_res_json.get("access_token")}
+        accept = requests.post(
+            f"{BASE_URL}accounts/google/login/finish/", data=data)
+        accept_status = accept.status_code
+        if accept_status != 200:
+            return JsonResponse({'err_msg': 'failed to signin'}, status=accept_status)
+        accept_json = accept.json()
+        accept_json.pop('user', None)
         return JsonResponse(accept_json)
