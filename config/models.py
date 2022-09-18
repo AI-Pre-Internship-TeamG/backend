@@ -37,7 +37,6 @@ class UserManager(BaseUserManager):
         user.save()
         return user
 
-
 class User(AbstractBaseUser, PermissionsMixin):
     class Roles(models.TextChoices):
         ADMIN = 'ADMIN'

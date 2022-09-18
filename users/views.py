@@ -62,7 +62,8 @@ class GoogleCallback(APIView):
         error = token_req_json.get("error")
         if error is not None:
             raise JSONDecodeError(error)
-        access_token = token_req_json.get("access_token")
+
+        access_token = token_req_json.get('access_token')
         refresh_token = token_req_json.get("refresh_token")
         """
         Email request - Access Token을 이용해 사용자의 이메일 반환받음

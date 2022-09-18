@@ -38,9 +38,27 @@ class ImagesView(APIView):
         images = Image.objects.filter(user_id=user.id, status="EXS")
         paginator = Paginator(images, 12)
         page = request.GET.get('page')
+        curPage = paginator.page(page)
         image = paginator.get_page(page)
         imageSerializer = GetImageSerializer(image, many=True)
-        return Response(imageSerializer.data, status=status.HTTP_200_OK)
+        next_page = 0
+        prev_page = 0
+        if curPage.has_next():
+            next_page = curPage.next_page_number()
+        if curPage.has_previous():
+            prev_page = curPage.previous_page_number()
+
+        content = {
+            "images": imageSerializer.data,  
+            "page": page,
+            "pages": paginator.num_pages,
+            "prev_page": prev_page,
+            "next_page": next_page,
+            "has_next": curPage.has_next(),
+            "has_prev": curPage.has_previous()
+        }
+        return Response(content, status=status.HTTP_200_OK)
+
 
     parser_classes = [MultiPartParser]
     @swagger_auto_schema(
