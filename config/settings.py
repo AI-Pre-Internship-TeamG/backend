@@ -63,11 +63,9 @@ INSTALLED_APPS = [
     # my_app
     'config',
     'drf_yasg',
-    'django_prometheus',
 ]
 
 MIDDLEWARE = [
-    'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -75,7 +73,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -105,13 +102,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        # 수정 필요!
-        'ENGINE': 'django_prometheus.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_NAME'),
-        'USER': os.environ.get('POSTGRES_USER'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-        'HOST': 'postgresql',
-        'PORT': 5432,
+        'ENGINE': 'django.db.backends.postgresql',
+        'HOST': get_secret("AWS_DATABASE_HOST"),
+        'PORT': '5432',
+        'NAME': get_secret("AWS_DATABASE_NAME"),
+        'USER': get_secret("AWS_DATABASE_USER"),
+        'PASSWORD': get_secret("AWS_DATABASE_PASSWORD")
     }
 }
 
@@ -196,8 +192,11 @@ REST_FRAMEWORK = {
     ),
 }
 
+REST_AUTH_SERIALIZERS = {
+'USER_DETAILS_SERIALIZER': 'users.serializers.CustomLoginSerializer'}
+
 # social login - 기본 user 모델에서 email만 사용하도록 커스터마이징
-AUTH_USER_MODEL = 'config.user'
+AUTH_USER_MODEL = 'config.User'
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False

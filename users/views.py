@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.core.cache import cache
 from django.http import JsonResponse
 from django.shortcuts import redirect
+from drf_yasg.utils import swagger_auto_schema
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from dj_rest_auth.registration.views import SocialLoginView
@@ -32,6 +33,10 @@ state = getattr(settings, 'STATE')
 class GoogleLogin(APIView):
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        tags=['Google login'],
+        responses={status.HTTP_201_CREATED: '{"Authorization": "Bearer token"}'}
+    )
     def get(self, request):
         """
         Code request
@@ -43,6 +48,7 @@ class GoogleLogin(APIView):
 class GoogleCallback(APIView):
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(tags=['Google login'])
     def get(self, request):
         client_id = getattr(settings, "SOCIAL_AUTH_GOOGLE_CLIENT_ID")
         client_secret = getattr(settings, "SOCIAL_AUTH_GOOGLE_SECRET")
@@ -100,8 +106,9 @@ class GoogleCallback(APIView):
             access_token = {"Authorization" : "Bearer " + accept_json['access_token']}
             return JsonResponse(access_token)
 
+@swagger_auto_schema(tags=['Google login'])
 class GoogleLoginToDjango(SocialLoginView):
-
+    
     adapter_class = google_view.GoogleOAuth2Adapter
     callback_url = GOOGLE_CALLBACK_URI
     client_class = OAuth2Client
@@ -109,6 +116,10 @@ class GoogleLoginToDjango(SocialLoginView):
 class KakaoLogin(APIView):
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        tags=['Kakao login'],
+        responses={status.HTTP_201_CREATED: '{"Authorization": "Bearer token"}'}
+    )
     def get(self, request):
         rest_api_key = getattr(settings, 'KAKAO_REST_API_KEY')
         kakao_auth_api = "https://kauth.kakao.com/oauth/authorize?response_type=code"
@@ -119,6 +130,9 @@ class KakaoLogin(APIView):
 class KakaoCallback(APIView):
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        tags=['Kakao login']
+    )
     def get(self, request):
         rest_api_key = getattr(settings, 'KAKAO_REST_API_KEY')
         code = request.GET.get("code")
@@ -222,6 +236,9 @@ class RefreshAccessToken(APIView):
 
 class RefresKakaoAccessToken(APIView):
 
+    @swagger_auto_schema(
+        tags=['Refresh Access Token']
+    )
     def get(self, request):
         user = request.user
         refreshToken = cache.get(user)
@@ -254,6 +271,9 @@ class RefresKakaoAccessToken(APIView):
 
 class RefresGoogleAccessToken(APIView):
     
+    @swagger_auto_schema(
+        tags=['Refresh Access Token']
+    )
     def get(self, request):
         user = request.user
         client_id = getattr(settings, "SOCIAL_AUTH_GOOGLE_CLIENT_ID")
