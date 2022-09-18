@@ -192,8 +192,11 @@ REST_FRAMEWORK = {
     ),
 }
 
+REST_AUTH_SERIALIZERS = {
+'USER_DETAILS_SERIALIZER': 'users.serializers.CustomLoginSerializer'}
+
 # social login - 기본 user 모델에서 email만 사용하도록 커스터마이징
-AUTH_USER_MODEL = 'config.user'
+AUTH_USER_MODEL = 'config.User'
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
