@@ -3,22 +3,30 @@ import uuid
 import config.settings as setting
 from django.shortcuts import render
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from django.http import HttpResponse, JsonResponse
 from django.core.paginator import Paginator
 from rest_framework.views import APIView
 from rest_framework.decorators import parser_classes
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import serializers
+from rest_framework.parsers import MultiPartParser
 from PIL import Image
 from .services import saveImageToS3
-from .serializers import ImageSerializer, GetImageSerializer
+from .serializers import GetImageResponseSerializer, ImageSerializer, GetImageSerializer, ImageBodySerializer
 from config.models import User, Image
+from json.decoder import JSONDecodeError
+
 
 class ImagesView(APIView):
 
+    token_info = openapi.Parameter('Authorization', openapi.IN_HEADER, description="access token", required=True, type=openapi.TYPE_STRING)
+    pageParam = openapi.Parameter('page', openapi.IN_QUERY, description='페이지 정보', required=True, type=openapi.TYPE_NUMBER)  
     @swagger_auto_schema(
         tags=['mypage'],
-        responses={status.HTTP_200_OK: GetImageSerializer}
+        manual_parameters=[token_info, pageParam],
+        responses={status.HTTP_200_OK: GetImageResponseSerializer}
     )
     def get(self, request):
         '''
@@ -33,9 +41,12 @@ class ImagesView(APIView):
         image = paginator.get_page(page)
         imageSerializer = GetImageSerializer(image, many=True)
         return Response(imageSerializer.data, status=status.HTTP_200_OK)
-    
+
+    parser_classes = [MultiPartParser]
     @swagger_auto_schema(
         tags=['Image upload'],
+        request_body=ImageBodySerializer,
+        manual_parameters=[token_info],
         responses={status.HTTP_200_OK: ImageSerializer}
     )
     def post(self, request):
@@ -44,7 +55,7 @@ class ImagesView(APIView):
         반환된 결과는 DB에 저장
         '''
         user = request.user
-        uploadFile = request.FILES['filename']
+        uploadFile = request.FILES['file']
         imageUrl = saveImageToS3(uploadFile, "before")
         ## 받아온 url로 이미지 처리 후 다시 url 값 반환
         # 이미지 처리
@@ -63,8 +74,11 @@ class ImagesView(APIView):
 
 class History(APIView):
 
+    token_info = openapi.Parameter('Authorization', openapi.IN_HEADER, description="access token", required=True, type=openapi.TYPE_STRING)
+    image_id = openapi.Parameter('photo', openapi.IN_PATH, description='이미지 ID', required=True, type=openapi.TYPE_NUMBER)
     @swagger_auto_schema(
         tags=['mypage'],
+        manual_parameters=[token_info, image_id],
         responses={
             status.HTTP_401_UNAUTHORIZED: '{"message": "로그인 후 이용 가능한 서비스입니다."}',
             status.HTTP_404_NOT_FOUND: '{"message": "존재하지 않는 이미지 입니다."}',
@@ -89,6 +103,7 @@ class History(APIView):
 
     @swagger_auto_schema(
         tags=['mypage'],
+        manual_parameters=[token_info, image_id],
         responses={
             status.HTTP_401_UNAUTHORIZED: '{"message": "로그인 후 이용 가능한 서비스입니다."}',
             status.HTTP_404_NOT_FOUND: '{"message": "존재하지 않는 이미지 입니다."}',
