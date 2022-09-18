@@ -2,7 +2,7 @@ from django.db import models
 from datetime import datetime
 from django.db.models import ForeignKey
 from django.utils.translation import ugettext_lazy as _
-from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
 class UserManager(BaseUserManager):
     """
@@ -37,13 +37,16 @@ class UserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 
-class User(AbstractUser):
+class CustomUser(AbstractBaseUser, PermissionsMixin):
     class Roles(models.TextChoices):
         ADMIN = 'ADMIN'
         USER = 'USER'
-    username = None
+        
     email = models.EmailField(unique=True, max_length=255)
-    role = models.CharField(max_length=5, choices=Roles.choices, null=False, default="USER")
+    is_staff = models.BooleanField(default=False) #models.CharField(max_length=5, choices=Roles.choices, null=False, default="USER")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=datetime.now)
+    updated_at = models.DateTimeField(auto_now=True)
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
     objects = UserManager()
@@ -57,7 +60,7 @@ class Image(models.Model):
         EXIST = 'EXS'
         MODIFIED = 'MOD'
 
-    user_id = ForeignKey(User, on_delete=models.CASCADE)
+    user_id = ForeignKey(CustomUser, on_delete=models.CASCADE)
     url = models.URLField(max_length=254, null=False)
     status = models.CharField(max_length=3, choices=Status.choices, default="EXS", null=False)
     created_at = models.DateTimeField(default=datetime.now)

@@ -3,7 +3,7 @@ from urllib import response
 import jwt
 import requests
 from .services import recreateAccessToken, googleEmailRequest
-from config.models import User
+from config.models import CustomUser
 from django.conf import settings
 from django.urls import reverse
 from django.core.cache import cache
@@ -70,7 +70,7 @@ class GoogleCallback(APIView):
             """
             Sign in
             """
-            user = User.objects.get(email=email)
+            user = CustomUser.objects.get(email=email)
             # 기존에 가입된 유저의 Provider가 google이 아니면 에러 발생, 맞으면 로그인
             social_user = SocialAccount.objects.get(user=user)
             if social_user is None:
@@ -87,7 +87,7 @@ class GoogleCallback(APIView):
             access_token = {"Authorization" : "Bearer " + accept_json['access_token']}
             return JsonResponse(access_token)
 
-        except User.DoesNotExist:
+        except CustomUser.DoesNotExist:
             """
             Sign up
             """
@@ -162,7 +162,7 @@ class KakaoCallback(APIView):
         Signup or Signin Request
         """
         try:
-            user = User.objects.get(email=email)
+            user = CustomUser.objects.get(email=email)
             # 기존에 가입된 유저의 Provider가 kakao가 아니면 에러 발생, 맞으면 로그인
             # 다른 SNS로 가입된 유저
             social_user = SocialAccount.objects.get(user=user)
@@ -183,7 +183,7 @@ class KakaoCallback(APIView):
             access_token = {"Authorization" : "Bearer " + accept_json['access_token']}
             return JsonResponse(access_token)
 
-        except User.DoesNotExist:
+        except CustomUser.DoesNotExist:
             # 기존에 가입된 유저가 없으면 새로 가입
             data = {'access_token': access_token, 'code': code}
             accept = requests.post(
