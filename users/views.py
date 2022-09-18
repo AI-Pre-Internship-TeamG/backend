@@ -8,6 +8,7 @@ from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as _
 from dj_rest_auth.registration.views import SocialLoginView
 from json.decoder import JSONDecodeError
+from django.core.paginator import Paginator
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -250,3 +251,13 @@ class RefresGoogleAccessToken(APIView):
         token_res = requests.post(url, data=data)
         accept_json = token_res.json()
         return JsonResponse(accept_json)
+
+class UserManagement(APIView):
+    def get(self, request):
+        user = User.objects.get(email=request.user)
+        if user.role != "ADMIN":
+            return Response({"message": "권한이 없습니다."}, status=status.HTTP_401_UNAUTHORIZED)
+        users = User.objects.all()
+        paginator = Paginator(users, 10)
+        page = request.GET.get('page')
+        image = paginator.get_page(page)
