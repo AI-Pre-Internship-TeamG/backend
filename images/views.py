@@ -59,6 +59,7 @@ class ImagesView(APIView):
         }
         return Response(content, status=status.HTTP_200_OK)
 
+
     parser_classes = [MultiPartParser]
     @swagger_auto_schema(
         tags=['Image upload'],

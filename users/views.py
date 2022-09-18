@@ -62,6 +62,7 @@ class GoogleCallback(APIView):
         error = token_req_json.get("error")
         if error is not None:
             raise JSONDecodeError(error)
+
         access_token = token_req_json.get('access_token')
         refresh_token = token_req_json.get("refresh_token")
         """
