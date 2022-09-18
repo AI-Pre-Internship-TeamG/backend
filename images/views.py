@@ -12,7 +12,7 @@ from rest_framework import status
 from PIL import Image
 from .services import saveImageToS3
 from .serializers import ImageSerializer, GetImageSerializer
-from config.models import CustomUser, Image
+from config.models import User, Image
 
 class ImagesView(APIView):
 
@@ -24,7 +24,7 @@ class ImagesView(APIView):
         '''
         사용자가 저장한 모든 사진 조회
         '''
-        user = CustomUser.objects.get(email=request.user)
+        user = User.objects.get(email=request.user)
         if user is None:
             return Response({"message": "로그인 후 이용 가능한 서비스입니다."}, status=status.HTTP_401_UNAUTHORIZED)
         images = Image.objects.filter(user_id=user.id, status="EXS")
@@ -49,7 +49,7 @@ class ImagesView(APIView):
         ## 받아온 url로 이미지 처리 후 다시 url 값 반환
         # 이미지 처리
         ## 유저 정보와 함께 DB에 이미지 저장
-        uploadUser = CustomUser.objects.get(email=user)
+        uploadUser = User.objects.get(email=user)
         content = {
             'user_id': uploadUser.id,
             'url': imageUrl
@@ -75,7 +75,7 @@ class History(APIView):
         '''
         사용자가 선택한 이미지 조회
         '''
-        user = CustomUser.objects.get(email=request.user)
+        user = User.objects.get(email=request.user)
         if user is None:
             return Response({"message": "로그인 후 이용 가능한 서비스입니다."}, status=status.HTTP_401_UNAUTHORIZED)
         
@@ -99,7 +99,7 @@ class History(APIView):
         '''
         사용자가 선택한 이미지 삭제
         '''
-        user = CustomUser.objects.get(email=request.user)
+        user = User.objects.get(email=request.user)
         if user is None:
             return Response({"message": "로그인 후 이용 가능한 서비스입니다."}, status=status.HTTP_401_UNAUTHORIZED)
         selectImage = Image.objects.get(id=photo, user_id=user.id)

@@ -38,7 +38,7 @@ class UserManager(BaseUserManager):
         return user
 
 
-class CustomUser(AbstractBaseUser, PermissionsMixin):
+class User(AbstractBaseUser, PermissionsMixin):
     class Roles(models.TextChoices):
         ADMIN = 'ADMIN'
         USER = 'USER'
@@ -61,7 +61,7 @@ class Image(models.Model):
         EXIST = 'EXS'
         MODIFIED = 'MOD'
 
-    user_id = ForeignKey(CustomUser, on_delete=models.CASCADE)
+    user_id = ForeignKey(User, on_delete=models.CASCADE)
     url = models.URLField(max_length=254, null=False)
     status = models.CharField(max_length=3, choices=Status.choices, default="EXS", null=False)
     created_at = models.DateTimeField(default=datetime.now)
