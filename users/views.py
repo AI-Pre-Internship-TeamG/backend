@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.core.cache import cache
 from django.http import JsonResponse
 from django.shortcuts import redirect
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
@@ -220,13 +221,17 @@ class KakaoLoginToDjango(SocialLoginView):
     callback_url = KAKAO_CALLBACK_URI
 
 class RefreshAccessToken(APIView):
+    token_info = openapi.Parameter('Authorization', openapi.IN_HEADER, description="access token", required=True, type=openapi.TYPE_STRING)
     @swagger_auto_schema(
-        tags=['Refresh Access Token']
+        tags=['Refresh Access Token'],
+        manual_parameters=[token_info],
+        responses={status.HTTP_200_OK: '{"Authorization": "Bearer token"}'},
     )
     def get(self, request):
         """
         토큰 재발급을 위한 사용자 식별
-        사용자의 provider 확인
+        사용자의 provider 확인후 사용자 인증 페이지로 redirect
+        - 인증 후 Access 토큰 재발급
         """
         user = request.user
         social_user = SocialAccount.objects.get(user=user)
@@ -241,6 +246,9 @@ class RefresKakaoAccessToken(APIView):
         tags=['Refresh Access Token']
     )
     def get(self, request):
+        '''
+        kakao 사용자인지 인증 후 Access 토큰 재발급
+        '''
         user = request.user
         refreshToken = cache.get(user)
         rest_api_key = getattr(settings, 'KAKAO_REST_API_KEY')
@@ -276,6 +284,9 @@ class RefresGoogleAccessToken(APIView):
         tags=['Refresh Access Token']
     )
     def get(self, request):
+        '''
+        google 사용자인지 인증 후 Access 토큰 재발급
+        '''
         user = request.user
         client_id = getattr(settings, "SOCIAL_AUTH_GOOGLE_CLIENT_ID")
         client_secret = getattr(settings, "SOCIAL_AUTH_GOOGLE_SECRET")
