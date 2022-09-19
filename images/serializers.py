@@ -14,11 +14,14 @@ class GetImageSerializer(serializers.ModelSerializer):
 class ImageBodySerializer(serializers.Serializer):
     file = serializers.ImageField(help_text='이미지 파일')
 
-class GetImageResponseSerializer(serializers.Serializer):
-    image = GetImageSerializer(read_only=True)
+class PageInfoSerializer(serializers.Serializer):
     page = serializers.IntegerField(help_text='현재 페이지')
     pages = serializers.IntegerField(help_text='전체 페이지')
     prev_page = serializers.IntegerField(help_text='이전 페이지')
     next_page = serializers.IntegerField(help_text='다음 페이지')
     has_next = serializers.IntegerField(help_text='다음 페이지 유무')
     has_prev = serializers.IntegerField(help_text='이전 페이지 유무')
+    
+class GetImageResponseSerializer(serializers.Serializer):
+    image = GetImageSerializer(read_only=True)
+    meta = PageInfoSerializer(read_only=True)

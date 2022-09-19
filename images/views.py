@@ -53,12 +53,14 @@ class ImagesView(APIView):
 
         content = {
             "images": imageSerializer.data,  
-            "page": page,
-            "pages": paginator.num_pages,
-            "prev_page": prev_page,
-            "next_page": next_page,
-            "has_next": curPage.has_next(),
-            "has_prev": curPage.has_previous()
+            "meta": {
+                "page": curPage.number,
+                "pages": paginator.num_pages,
+                "prev_page": prev_page,
+                "next_page": next_page,
+                "has_next": curPage.has_next(),
+                "has_prev": curPage.has_previous()
+            }
         }
         return Response(content, status=status.HTTP_200_OK)
 
