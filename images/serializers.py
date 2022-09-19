@@ -6,10 +6,13 @@ class ImageSerializer(serializers.ModelSerializer):
         model = Image  # 모델 설정
         fields = ['user_id', 'url']
 
-class GetImageSerializer(serializers.ModelSerializer):
+class GetImageSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    url = serializers.URLField()
+    created_at = serializers.DateTimeField(format = "%Y/%m/%d")
     class Meta:
         model = Image
-        fields = ['id', 'url']
+        fields = ['id', 'url', 'created_at']
 
 class ImageBodySerializer(serializers.Serializer):
     file = serializers.ImageField(help_text='이미지 파일')
