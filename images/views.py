@@ -26,7 +26,10 @@ class ImagesView(APIView):
     @swagger_auto_schema(
         tags=['mypage'],
         manual_parameters=[token_info, pageParam],
-        responses={status.HTTP_200_OK: GetImageResponseSerializer}
+        responses={
+            status.HTTP_200_OK: GetImageResponseSerializer,
+            status.HTTP_401_UNAUTHORIZED: '{"message": "로그인 후 이용 가능한 서비스입니다."}'
+        }
     )
     def get(self, request):
         '''
@@ -71,6 +74,7 @@ class ImagesView(APIView):
         '''
         프론트에서 받아온 이미지를 S3에 저장 후 처리한 이미지의 결과 반환
         반환된 결과는 DB에 저장
+        AI 연동 이후 변경 예정
         '''
         user = request.user
         uploadFile = request.FILES['file']
