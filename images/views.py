@@ -1,5 +1,3 @@
-import boto3
-import uuid
 import config.settings as setting
 from django.shortcuts import render
 from drf_yasg.utils import swagger_auto_schema
@@ -13,10 +11,11 @@ from rest_framework import status
 from rest_framework import serializers
 from rest_framework.parsers import MultiPartParser
 from PIL import Image
-from .services import saveImageToS3
-from .serializers import GetImageResponseSerializer, ImageSerializer, GetImageSerializer, ImageBodySerializer
+from .services import saveImageToS3, deleteImageToS3
+from .serializers import GetImageResponseSerializer, ImageSerializer, GetImageSerializer, ImageBodySerializer, ProcessImageBodySerializer
 from config.models import User, Image
 from json.decoder import JSONDecodeError
+import requests
 
 
 class ImagesView(APIView):
@@ -24,7 +23,7 @@ class ImagesView(APIView):
     token_info = openapi.Parameter('Authorization', openapi.IN_HEADER, description="access token", required=True, type=openapi.TYPE_STRING)
     pageParam = openapi.Parameter('page', openapi.IN_QUERY, description='페이지 정보', required=True, type=openapi.TYPE_NUMBER)  
     @swagger_auto_schema(
-        tags=['mypage'],
+        tags=['Mypage'],
         manual_parameters=[token_info, pageParam],
         responses={
             status.HTTP_200_OK: GetImageResponseSerializer,
@@ -67,34 +66,32 @@ class ImagesView(APIView):
 
     parser_classes = [MultiPartParser]
     @swagger_auto_schema(
-        tags=['Image upload'],
+        tags=['Mypage'],
         request_body=ImageBodySerializer,
         manual_parameters=[token_info],
         responses={status.HTTP_200_OK: ImageSerializer}
     )
     def post(self, request):
         '''
-        프론트에서 받아온 이미지를 S3에 저장 후 처리한 이미지의 결과 반환
-        반환된 결과는 DB에 저장
-        AI 연동 이후 변경 예정
+        최종 선택한 아마자 URL를 프론트 결과 테이블에 저장
         '''
-        user = request.user
-        uploadFile = request.FILES['file']
-        imageUrl = saveImageToS3(uploadFile, "before")
         ## 받아온 url로 이미지 처리 후 다시 url 값 반환
         # 이미지 처리
         ## 유저 정보와 함께 DB에 이미지 저장
-        uploadUser = User.objects.get(email=user)
+        user = User.objects.get(email=request.user)
+        if user is None:
+            return Response({"message": "로그인 후 이용 가능한 서비스입니다."}, status=status.HTTP_401_UNAUTHORIZED)
+        imgUrl = request.body['img_url']
         content = {
-            'user_id': uploadUser.id,
-            'url': imageUrl
+            'user_id': user.id,
+            'url': imgUrl
         }
         serializer = ImageSerializer(data=content)
         if serializer.is_valid():
             serializer.save()
         else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.data, status=status.HTTP_201_CREATED) 
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_201_CREATED) 
 
 class History(APIView):
 
