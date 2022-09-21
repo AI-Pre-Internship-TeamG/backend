@@ -98,7 +98,7 @@ class History(APIView):
     token_info = openapi.Parameter('Authorization', openapi.IN_HEADER, description="access token", required=True, type=openapi.TYPE_STRING)
     image_id = openapi.Parameter('photo', openapi.IN_PATH, description='이미지 ID', required=True, type=openapi.TYPE_NUMBER)
     @swagger_auto_schema(
-        tags=['mypage'],
+        tags=['Mypage'],
         manual_parameters=[token_info, image_id],
         responses={
             status.HTTP_401_UNAUTHORIZED: '{"message": "로그인 후 이용 가능한 서비스입니다."}',
@@ -123,7 +123,7 @@ class History(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
-        tags=['mypage'],
+        tags=['Mypage'],
         manual_parameters=[token_info, image_id],
         responses={
             status.HTTP_401_UNAUTHORIZED: '{"message": "로그인 후 이용 가능한 서비스입니다."}',
@@ -144,3 +144,41 @@ class History(APIView):
         selectImage.status = "DEL"
         selectImage.save()
         return JsonResponse({"messge": "이미지를 삭제하였습니다."}, status=status.HTTP_200_OK)
+
+
+
+class Process(APIView):
+    token_info = openapi.Parameter('Authorization', openapi.IN_HEADER, description="access token", required=True, type=openapi.TYPE_STRING)
+    '''
+    프론트에서 데이터 받아서 AI 서버로 처리 요청 후 데이터 반화
+    '''
+    parser_classes = [MultiPartParser]
+    @swagger_auto_schema(
+        tags=['Image Processing'],
+        request_body=ProcessImageBodySerializer,
+        manual_parameters=[token_info],
+        responses={status.HTTP_201_CREATED: ImageSerializer}
+    )
+    def post(self, request):
+        user = User.objects.get(email=request.user)
+        if user is None:
+            return Response({"message": "로그인 후 이용 가능한 서비스입니다."}, status=status.HTTP_401_UNAUTHORIZED)
+        uploadFile = request.FILES['file']
+        originImg = request.data['originImgUrl']
+        imageUrl = saveImageToS3(uploadFile, "masking_img")
+        data = {
+            'mask': imageUrl, 
+            'fname': originImg
+        }
+        response = requests.post('http://localhost:8001/process', data=data)
+        deleteImageToS3(imageUrl, "masking_img")
+        # 이 아래는 AI 서버에서 이미지를 어떤 형식으로 return하느냐에 따라서 수정 필요
+        resultUrl = saveImageToS3(response.FILES["file"], "result")
+        data = {
+            'url': resultUrl
+        }
+
+        return Response(data, status=status.HTTP_201_CREATED) 
+
+    def post(self, request):
+        user = User.objects.get(email=request.user)
