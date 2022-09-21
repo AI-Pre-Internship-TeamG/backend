@@ -11,3 +11,10 @@ def saveImageToS3(uploadFile, state):
     s3r.Bucket(settings.AWS_STORAGE_BUCKET_NAME).put_object(Key=key, Body=uploadFile, ContentType=fileFormat) # 버켓에 이미지 저장
     imageUrl = settings.AWS_S3_CUSTOM_DOMAIN+key # 이 뒤로 이미지 처리
     return imageUrl
+
+def deleteImageToS3(deleteUrl, state):
+    s3r = boto3.resource('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key= settings.AWS_SECRET_ACCESS_KEY)
+    key = deleteUrl[-36:]
+    # s3.Object('your-bucket', 'your-key').delete()
+    obj = s3r.Object(settings.AWS_STORAGE_BUCKET_NAME, state + '/' +key)
+    obj.delete()
