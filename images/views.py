@@ -180,5 +180,26 @@ class Process(APIView):
 
         return Response(data, status=status.HTTP_201_CREATED) 
 
+class Upload(APIView):
+    token_info = openapi.Parameter('Authorization', openapi.IN_HEADER, description="access token", required=True, type=openapi.TYPE_STRING)
+    '''
+    프론트에서 선택한 지우고 싶은 원본 이미지 s3에 업로드
+    '''
+    parser_classes = [MultiPartParser]
+    @swagger_auto_schema(
+        tags=['Image Upload'],
+        request_body=ImageBodySerializer,
+        manual_parameters=[token_info],
+        responses={status.HTTP_201_CREATED: ImageSerializer}
+    )
     def post(self, request):
         user = User.objects.get(email=request.user)
+        if user is None:
+            return Response({"message": "로그인 후 이용 가능한 서비스입니다."}, status=status.HTTP_401_UNAUTHORIZED)
+        uploadFile = request.FILES['file']
+        imageUrl = saveImageToS3(uploadFile, "before")
+        data = {
+            'url': imageUrl
+        }
+
+        return Response(data, status=status.HTTP_201_CREATED) 
