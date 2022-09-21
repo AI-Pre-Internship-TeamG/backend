@@ -14,8 +14,12 @@ class GetImageSerializer(serializers.Serializer):
         model = Image
         fields = ['id', 'url', 'created_at']
 
+class ProcessImageBodySerializer(serializers.Serializer):
+    file = serializers.ImageField(help_text='마스킹 이미지 파일')
+    originImgUrl = serializers.URLField(help_text='원본 이미지 파일')
+
 class ImageBodySerializer(serializers.Serializer):
-    file = serializers.ImageField(help_text='이미지 파일')
+    file = serializers.ImageField(help_text='마스킹 이미지 파일')
 
 class PageInfoSerializer(serializers.Serializer):
     page = serializers.IntegerField(help_text='현재 페이지')
