@@ -4,6 +4,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.http import HttpResponse, JsonResponse
 from django.core.paginator import Paginator
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from rest_framework.views import APIView
 from rest_framework.decorators import parser_classes
 from rest_framework.response import Response
@@ -16,8 +17,9 @@ from .serializers import GetImageResponseSerializer, ImageSerializer, GetImageSe
 from config.models import User, Image
 from json.decoder import JSONDecodeError
 import requests
-
-
+import base64
+import io
+import sys
 class ImagesView(APIView):
 
     token_info = openapi.Parameter('Authorization', openapi.IN_HEADER, description="access token", required=True, type=openapi.TYPE_STRING)
@@ -163,14 +165,24 @@ class Process(APIView):
         user = User.objects.get(email=request.user)
         if user is None:
             return Response({"message": "로그인 후 이용 가능한 서비스입니다."}, status=status.HTTP_401_UNAUTHORIZED)
-        uploadFile = request.FILES['file']
+        imgData = request.data['imgData']
+        format, imgstr = imgData.split(';base64,') 
+        ext = format.split('/')[-1] 
+        f = io.BytesIO(base64.b64decode(imgstr))
+        mask_img = InMemoryUploadedFile(
+            f,
+            field_name="picture",
+            name="picture"+ "." + ext,  # use UUIDv4 or something
+            content_type="image/jpeg",
+            size=sys.getsizeof(f),
+            charset=None)
         originImg = request.data['originImgUrl']
-        imageUrl = saveImageToS3(uploadFile, "masking_img")
+        imageUrl = saveImageToS3(mask_img, "masking_img")
         data = {
             'mask': imageUrl, 
             'fname': originImg
         }
-        response = requests.post('http://localhost:8001/process', data=data)
+        response = requests.post('http://localhost:8001/process/', data=data)
         deleteImageToS3(imageUrl, "masking_img")
         # 이 아래는 AI 서버에서 이미지를 어떤 형식으로 return하느냐에 따라서 수정 필요
         resultUrl = saveImageToS3(response.FILES["file"], "result")
