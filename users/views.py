@@ -50,10 +50,10 @@ class GoogleCallback(APIView):
     permission_classes = [AllowAny]
 
     @swagger_auto_schema(tags=['Google login'])
-    def get(self, request):
+    def post(self, request):
         client_id = getattr(settings, "SOCIAL_AUTH_GOOGLE_CLIENT_ID")
         client_secret = getattr(settings, "SOCIAL_AUTH_GOOGLE_SECRET")
-        code = request.GET.get('code')
+        code = request.data['data']
         """
         받은 Code를 통해 Access Token 요청
         """
