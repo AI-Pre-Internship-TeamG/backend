@@ -135,10 +135,10 @@ class KakaoCallback(APIView):
     @swagger_auto_schema(
         tags=['Kakao login']
     )
-    def get(self, request):
+    def post(self, request):
         rest_api_key = getattr(settings, 'KAKAO_REST_API_KEY')
-        code = request.GET.get("code")
-        redirect_uri = KAKAO_CALLBACK_URI
+        code = request.data['data']
+        redirect_uri = 'http://localhost:3000/oauth/callback/kakao'
         kakao_token_api = "https://kauth.kakao.com/oauth/token"
         data = {
             'grant_type': 'authorization_code',
