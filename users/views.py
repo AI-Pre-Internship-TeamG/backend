@@ -50,15 +50,15 @@ class GoogleCallback(APIView):
     permission_classes = [AllowAny]
 
     @swagger_auto_schema(tags=['Google login'])
-    def get(self, request):
+    def post(self, request):
         client_id = getattr(settings, "SOCIAL_AUTH_GOOGLE_CLIENT_ID")
         client_secret = getattr(settings, "SOCIAL_AUTH_GOOGLE_SECRET")
-        code = request.GET.get('code')
+        code = request.data['data']
         """
         받은 Code를 통해 Access Token 요청
         """
         token_req = requests.post(
-            f"https://oauth2.googleapis.com/token?client_id={client_id}&client_secret={client_secret}&code={code}&grant_type=authorization_code&redirect_uri={GOOGLE_CALLBACK_URI}&state={state}")
+            f"https://oauth2.googleapis.com/token?client_id={client_id}&client_secret={client_secret}&code={code}&grant_type=authorization_code&redirect_uri=http://localhost:3000/oauth/callback/google&state={state}")
         token_req_json = token_req.json()
         error = token_req_json.get("error")
         if error is not None:
@@ -135,10 +135,10 @@ class KakaoCallback(APIView):
     @swagger_auto_schema(
         tags=['Kakao login']
     )
-    def get(self, request):
+    def post(self, request):
         rest_api_key = getattr(settings, 'KAKAO_REST_API_KEY')
-        code = request.GET.get("code")
-        redirect_uri = KAKAO_CALLBACK_URI
+        code = request.data['data']
+        redirect_uri = 'http://localhost:3000/oauth/callback/kakao'
         kakao_token_api = "https://kauth.kakao.com/oauth/token"
         data = {
             'grant_type': 'authorization_code',
