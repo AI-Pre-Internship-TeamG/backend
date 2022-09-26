@@ -15,7 +15,7 @@ class GetImageSerializer(serializers.Serializer):
         fields = ['id', 'url', 'created_at']
 
 class ProcessImageBodySerializer(serializers.Serializer):
-    file = serializers.ImageField(help_text='마스킹 이미지 파일')
+    imgData = serializers.CharField(help_text='마스킹 이미지 파일')
     originImgUrl = serializers.URLField(help_text='원본 이미지 파일')
 
 class ImageBodySerializer(serializers.Serializer):
