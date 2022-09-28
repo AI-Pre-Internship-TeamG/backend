@@ -310,3 +310,12 @@ class RefresGoogleAccessToken(APIView):
             status=token_status
         )
         return response
+
+class Logout(APIView):
+    def get(self, request):
+        user = request.user
+        cache.delete(user)
+        data = {
+            '로그아웃': cache.get(user)
+        }
+        return JsonResponse(data=data)
