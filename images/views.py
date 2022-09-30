@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
 from rest_framework.parsers import MultiPartParser
-from PIL import Image
+from PIL import Image as pilimage
 from .services import saveImageToS3, deleteImageToS3
 from .serializers import GetImageResponseSerializer, ImageSerializer, GetImageSerializer, ImageBodySerializer, ProcessImageBodySerializer
 from config.models import User, Image
@@ -19,9 +19,9 @@ from json.decoder import JSONDecodeError
 import requests
 import base64
 import sys
-from PIL import Image
 from io import BytesIO
-import PIL.ImageOps  
+import PIL.ImageOps   
+import json
 
 class ImagesView(APIView):
 
@@ -86,7 +86,9 @@ class ImagesView(APIView):
         user = User.objects.get(email=request.user)
         if user is None:
             return Response({"message": "로그인 후 이용 가능한 서비스입니다."}, status=status.HTTP_401_UNAUTHORIZED)
-        imgUrl = request.body['img_url']
+        url = json.loads(request.body)
+        print(url['img_url'])
+        imgUrl = url['img_url']
         content = {
             'user_id': user.id,
             'url': imgUrl
@@ -150,13 +152,9 @@ class History(APIView):
         selectImage.save()
         return JsonResponse({"messge": "이미지를 삭제하였습니다."}, status=status.HTTP_200_OK)
 
-
-
 class Process(APIView):
     token_info = openapi.Parameter('Authorization', openapi.IN_HEADER, description="access token", required=True, type=openapi.TYPE_STRING)
-    '''
-    프론트에서 데이터 받아서 AI 서버로 처리 요청 후 데이터 반화
-    '''
+   
     parser_classes = [MultiPartParser]
     @swagger_auto_schema(
         tags=['Image Processing'],
@@ -169,9 +167,9 @@ class Process(APIView):
         if user is None:
             return Response({"message": "로그인 후 이용 가능한 서비스입니다."}, status=status.HTTP_401_UNAUTHORIZED)
         imgData = request.data['imgData']
-        format, imgstr = imgData.split(';base64,') 
-        ext = format.split('/')[-1] 
-        r = Image.open(BytesIO(base64.b64decode(imgstr)))
+        format, imgstr = imgData.split(';base64,')
+        ext = format.split('/')[-1]
+        r = pilimage.open(BytesIO(base64.b64decode(imgstr)))
         r = r.convert('L')
         inverted_image = PIL.ImageOps.invert(r)
         r = r.convert('1')
@@ -186,18 +184,23 @@ class Process(APIView):
             content_type="image/png",
             size=sys.getsizeof(thumb_io),
             charset=None)
-
         imageUrl = saveImageToS3(mask_img, "masking_img")
-        data = {
-            'mask': imageUrl, 
+        payload = {
+            'mask': imageUrl,
             'fname': originImg
         }
-        response = requests.post('http://localhost:8888/inpaint/', data=data)
-        deleteImageToS3(imageUrl, "masking_img")
-        data = {
-            'url': response.data
-        }
-        return Response(data, status=status.HTTP_201_CREATED) 
+        print('페이로드',payload) 
+        url = "http://ai:8888/inpaint"
+        response = requests.post(url, data=payload)
+        # deleteImageToS3(imageUrl, “masking_img”)
+        print(response)
+        # data = {
+        #     'url': response.json.url
+        # } 
+        return Response(response, status=status.HTTP_201_CREATED)
+
+
+
 
 class Upload(APIView):
     token_info = openapi.Parameter('Authorization', openapi.IN_HEADER, description="access token", required=True, type=openapi.TYPE_STRING)
