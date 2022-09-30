@@ -188,16 +188,15 @@ class Process(APIView):
             charset=None)
 
         imageUrl = saveImageToS3(mask_img, "masking_img")
-        data = {
+        payload = {
             'mask': imageUrl, 
             'fname': originImg
         }
-        response = requests.post('http://localhost:8888/inpaint/', data=data)
+        url = "http://ai:8888/inpaint"
+        response = requests.post(url, data=payload)
         deleteImageToS3(imageUrl, "masking_img")
-        data = {
-            'url': response.data
-        }
-        return Response(data, status=status.HTTP_201_CREATED) 
+
+        return Response(response, status=status.HTTP_201_CREATED) 
 
 class Upload(APIView):
     token_info = openapi.Parameter('Authorization', openapi.IN_HEADER, description="access token", required=True, type=openapi.TYPE_STRING)
