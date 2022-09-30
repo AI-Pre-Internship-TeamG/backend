@@ -192,10 +192,10 @@ class Process(APIView):
             'mask': imageUrl, 
             'fname': originImg
         }
-        response = requests.post('http://localhost:8888/inpaint/', data=data)
+        response = requests.post('http://ai:8888/inpaint/', data=data)
         deleteImageToS3(imageUrl, "masking_img")
         data = {
-            'url': response.data
+             response.data
         }
         return Response(data, status=status.HTTP_201_CREATED) 
 
